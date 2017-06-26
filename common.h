@@ -9,8 +9,8 @@
 
 // from `man shm_open`
 #include <sys/mman.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
+#include <sys/stat.h>        /* Para mode constants */
+#include <fcntl.h>           /* Para O_* constants */
 #include <signal.h>
 #include <semaphore.h>
 
@@ -20,13 +20,14 @@ struct Job{
     char name[50];
     int time;
     int ownerpid;
+    int priority;
 };
 
 
 
 typedef struct {
-    //Next block is job queue info
-    struct Job joblist[50];     //Max is 50, but use may restrict to less
+    //Proximo bloco sao informações da fila de trabalho
+    struct Job joblist[50];     //Max eh 50, mas podemos restringir para menos
     int qfront;
     int qrear;
     int jobcount;

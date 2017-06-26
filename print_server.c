@@ -11,22 +11,25 @@
 
 int fd;
 int errno;
-int shm_exists;
+int existe_mem_compart;
 Shared* shared_mem;
 
-int setup_shared_memory(){
-    //Set the file descriptor fd to the shared mem
-    //the memory will have the size only of the specified object
-    //->Only create the shared memory if it does not exists
+int config_memoria_compartilhada(){
+    
+    /*
+     *Seta o descritor de arquivos(fd) para a memória compartilhada, 
+     *a memória terá o tamanho apenas do objeto especificado
+     -> Apenas crie a memória compartilhada se não existir
+    */
     fd = shm_open(t_shm, O_CREAT | O_RDWR | O_EXCL, S_IRWXU);
     if(errno == EEXIST){
-        printf("Shared memory already exists, opening instead of creating\n");
-        shm_exists = 1;
+        printf("Memoria compartilhada ja existe!\nAbrindo ao inves de criar...\n");
+        existe_mem_compart = 1;
         fd = shm_open(t_shm, O_RDWR, S_IRWXU);
     }
     if(fd == -1){
-        //Check failed memory assignment
-        printf("Could not open or create share memory\n");
+        // Verificar a tarefa de memória com falha
+        printf("Não pode abrir ou criar uma memori compartilhada\n");
         exit(1);
     }
     ftruncate(fd, sizeof(Shared));
@@ -34,69 +37,67 @@ int setup_shared_memory(){
     return 0;
 }
 
-int attach_shared_memory(){
-
-    //Attach the shared memory at fd to the process virtual address
+int anexa_memoria_compart(){
+    // Anexa a memoria compart no descritor de arquivo ao endereco virtual do processo
     shared_mem = (Shared*) mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(shared_mem == MAP_FAILED){
-        printf("mmap() failed\n");
+        printf("mmap() falhou\n");
         exit(1);
     }
-    printf("Successfully attached shared memory to printer server\n");
+    printf("Memoria compartilhada anexada com sucesso ao servidor da impressora\n");
 
     return 0;
 }
 
-int init_shared_memory(){
-    
-    int temp;
+int init_memoria_compart(){
 
-    printf( "Enter the size of the job queue,\nmust be an integer between 0 and 50:\n>");
+    int temp;
+    printf( "Entre com o tamanho da fila de trabalhos, precisa ser um inteiro entre 0 e 50:\n>>");
     scanf("%d" , &temp);
     while( temp < 1 || temp > 50){
-        printf( "Invalid input, please enter an integer between 0 and 50\n>" );
+        printf( "Entrada invalida, por favor entre com um inteiro entre 0 e 50\n>" );
         scanf("%d" , &temp);
     }
 
 
-    //Here init everything in the struct object
-    shared_mem->qfront = 0;
-    shared_mem->qrear = 0;
-    shared_mem->jobcount = 0;
+    // Aqui inicia tudo em um struct
+    shared_mem->qfront = 1;
+    shared_mem->qrear = 1;
+    shared_mem->jobcount = 1;
     shared_mem->queuesize = temp;
-    sem_init(&(shared_mem->underflow), 1, 0);// Underflow start at 0
-    sem_init(&(shared_mem->overflow), 1, temp); // Overflow starts at max
-    sem_init(&(shared_mem->mutex), 1, 1);  // first 1 means shared between processes
+    sem_init(&(shared_mem->underflow), 1, 0);// 'Underflow' inicia em 0
+    sem_init(&(shared_mem->overflow), 1, temp); // 'Overflow' inicia no MAX
+    sem_init(&(shared_mem->mutex), 1, 1);  //  Primeiro 1 significa memoria compart. entre processos
 
-    printf("Printer server initialized shared memory with a capacity of %d jobs\n",shared_mem->queuesize);
+    printf("Servidor da impressora inicia memoria compartilhada com a capacidade de %d trbalhos\n",shared_mem->queuesize);
 
 }
 
 void catch_signal( int the_signal ) {
     signal( the_signal, catch_signal );
-    printf( "\nSignal %d received\n", the_signal );
+    printf( "\nSinal %d recebido\n", the_signal );
     if(the_signal == SIGQUIT || the_signal == SIGINT ){
-        printf( "Cleaning and exiting\n");
-        //Clean: Destroy the semaphores and unlink the shared mem
+        printf( "Limpando e saindo..\n");
+        // Limpar: destroi os semaforos e desvincula da memoria compart
         int r=0;
         r+=sem_destroy(&(shared_mem->underflow));
         r+=sem_destroy(&(shared_mem->overflow));
         r+=sem_destroy(&(shared_mem->mutex));
         if(r){
-            printf("Could not destroy semaphores\n");
+            printf("Nao conseguiu destruir os semaforos.\n");
         }else{
-            printf("Successfully destroyed semaphores\n");
+            printf("Semaforos destruidos com sucesso!\n");
         }
         if(shm_unlink(t_shm)==-1){
-            printf("Could not unlink the shared memory\n");
+            printf("Memoria compartilhada desvinculada com falha.\n");    
             exit(1);
         }
-        printf("Successfully unlinked shared memory\n");
+        printf("Memoria compartilhada desvinculada com sucesso!\n");
         exit(3);
     }
 }
 
-void printProgress (double percentage)
+void printProgress(double percentage)
 {
     int val = (int) (percentage * 100);
     int lpad = (int) (percentage * PBWIDTH);
@@ -109,45 +110,47 @@ void printProgress (double percentage)
 int main(int argc, char argv[]){
     //Set up hooks for cleaning
     if ( signal (SIGINT, catch_signal ) == SIG_ERR ){
-        perror( "SIGINT failed" );
+        perror( "SIGINT falhou" );
         exit (1);
     }
     if ( signal (SIGQUIT, catch_signal ) == SIG_ERR ){
-        perror( "SIGQUIT failed" );
+        perror( "SIGQUIT falhou" );
         exit(1);
     }
 
-    shm_exists = 0;     //var that notes if the shm has to be init
+    existe_mem_compart = 0;     //var that notes if the shm has to be init
 
-    setup_shared_memory();      //Create or open the shared memory
-    attach_shared_memory();
-    if(!shm_exists){            //init shm only if first server
-        init_shared_memory();   //also init the semaphores
+    // cria ou abre a memoria compartilhada
+    config_memoria_compartilhada();      
+    anexa_memoria_compart();
+    // inicia memoria compartilhada somente se primeiro server
+    if(!existe_mem_compart){            
+        init_memoria_compart();   //tambem inicia os semaforos
     }else{
-        printf("Skipped initialization since using already created shared memory\n");
+        printf("Pulando inicializacao uma vez que a memoria compartilhada ja fora criada\n");
     }
-
-    while(1){
-        int jobnum;
-        //wait to get the mutex
+    int jobnum;
+    do{
+        // espera para adquiri o mutex
         sem_wait(&shared_mem->underflow);
         sem_wait(&shared_mem->mutex);
 
-        //execute a print job and print info
-        jobnum = shared_mem->qrear;         //update job number
-        struct Job currentjob = shared_mem->joblist[shared_mem->qrear%shared_mem->queuesize];       //load the job in a local struct
-        printf("\n----------\nProcessing job #%d\nJob name: \"%s\"\nJob owner: %d\nJob time: %d\n",shared_mem->qrear, currentjob.name, currentjob.ownerpid, currentjob.time);
+        // executa a impressao da requisicao e a impressao das informacoes
+        jobnum = shared_mem->qrear;         // update o numero da requisicao
+        struct Job currentjob = shared_mem->joblist[shared_mem->qrear%shared_mem->queuesize];       // carrega a requisicao em um struct local
+        printf("\n***************\nProcessando requisicao #%d\nNome da requisicao: \"%s\"\nDono da requisicao: %d\nTempo de trabalho: %d\nPrioridade: %d\n",shared_mem->qrear, currentjob.name, currentjob.ownerpid, currentjob.time, currentjob.priority);
+        shared_mem->qrear++;            // update na referencia da fila de aptos (em um array)
+        shared_mem->jobcount--;         // tem um trabalho a menos na fila
 
-        shared_mem->qrear++;            //update the rear of the job queue (in an array)
-        shared_mem->jobcount--;         //There is one less job in the queue
-
-        //Exit the critical region before processing the job (no need to stay in)
+        // finaliza a sessao critica antes de processar um novo trabalho (nao precisa mante-la)
         sem_post(&shared_mem->mutex);
         sem_post(&shared_mem->overflow);
 
-        // Not working PB
+        // P
+        // TODO corrigir ProgressBar 
         // printProgress(currentjob.time/10);      //Show PB of the task
-        sleep(currentjob.time);     //Execute the job       
-        printf("Job #%i done. \n----------\n\n", jobnum);
-    }
+        // Executa o trabalho
+        sleep(currentjob.time);     
+        printf("Requisicao #%i concluida. \n---------------------\n\n", jobnum);
+    } while((jobnum+1) != shared_mem->queuesize);
 }

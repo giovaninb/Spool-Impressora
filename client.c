@@ -11,17 +11,17 @@ int errno;
 int shm_exists;
 Shared* shared_mem;
 
-int setup_shared_memory(){
+int config_memoria_compartilhada(){
     //Set the file descriptor to shared memory
     fd = shm_open(t_shm, O_RDWR , S_IRWXU);
     if(fd == -1){
-        printf("Could not open share memory\n");
+        printf("Não conseguiu abrir a memoria compartilhada\n");
         exit(1);
     }
     return 0;
 }
 
-int attach_shared_memory(){
+int anexa_memoria_compart(){
 
     //Attach the shared memory at fd to the process virtual address
     shared_mem = (Shared*) mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -29,7 +29,7 @@ int attach_shared_memory(){
         printf("mmap() failed\n");
         exit(1);
     }
-    printf("Successfully attached shared memory to printer server\n");
+    printf("Memoria compartilhada anexada com sucesso ao servidor da impressora\n");
 
     return 0;
 }
@@ -40,9 +40,9 @@ void catch_signal( int the_signal ) {
     sem_getvalue(&shared_mem->mutex, &temp);
     if(temp != 1){
         sem_post(&shared_mem->mutex);
-        printf("\nExisting in critical region, set mutex back to 1\n");
+        printf("\nJa existe na regicao critica, setando mutex de volta para 1\n");
     }
-    printf("\nExitting safely\n");
+    printf("\nSaindo com seguranca!\n");
     exit(1);
 }
 
@@ -50,34 +50,36 @@ void catch_signal( int the_signal ) {
 int main(int argc, char argv[]){
     //Set up hooks for cleaning
     if ( signal (SIGINT, catch_signal ) == SIG_ERR ){
-        perror( "SIGINT failed" );
+        perror( "SIGINT falhou" );
         exit (1);
     }
     if ( signal (SIGQUIT, catch_signal ) == SIG_ERR ){
-        perror( "SIGQUIT failed" );
+        perror( "SIGQUIT falhou" );
         exit(1);
     }
-    setup_shared_memory();
-    attach_shared_memory();
+    config_memoria_compartilhada();
+    anexa_memoria_compart();
 
     while(1){
 
-        //Create the job struct
+        // Cria o struct de trabalho/Job
         struct Job printjob;
-        printf("What is the name of your job ?\n>");
+        printf("Como eh o nome da sua requisicao ?\n>");
         scanf("%[^\n]%*c", printjob.name);
-        printf("What is the time required for your job ?\n>");
+        printf("Qual o tempo necessario para a sua requisicao(em seg) ?\n>");
         scanf("%d", &printjob.time);
         printjob.ownerpid = getpid();
-        //wait to get the mutex
+        printf("Qual a prioridade da sua requisicao(1-adm|2-user) ?\n>");
+        scanf("%d", &printjob.priority);
+        // Espera pelo mutex
         if(sem_trywait(&shared_mem->overflow)==-1){
-            printf("Queue full, waiting for a job to finish\n");
+            printf("Fila cheia, esperando que alguma requisicao finalize.\n");
             sem_wait(&shared_mem->overflow);
         }
         sem_wait(&shared_mem->mutex);
-        //put the job in the queue
+        // Coloca o trabalho na fila
         shared_mem->joblist[(shared_mem->qfront)%shared_mem->queuesize] = printjob;
-        printf("The job has been successfully added to the job queue.\nThere are %d jobs waiting before this job.\n",shared_mem->jobcount);
+        printf("A requisicao foi adicionada com sucesso na fila. \nAinda ha %d requisicao(oes) antes desta.\n",shared_mem->jobcount);
 
         shared_mem->qfront++;
         shared_mem->jobcount++;
@@ -86,12 +88,12 @@ int main(int argc, char argv[]){
         sem_post(&shared_mem->underflow);
 
         char c;
-        printf("Do you want to create a new job ? [y/n]\n>");
+        printf("Você deseja criar uma nova requisicao ? [y/n]\n>");
         c = getchar();  //clear the newline char in stdin
         c = getchar();
         getchar();
         if(c == 'n' || c == 'N'){
-            printf("No more job to send, exiting\n");
+            printf("Mais nenhuma requisicao para enviar, saindo...\n");
             exit(0);
         }
             
