@@ -1,6 +1,7 @@
-Spool de Impressão
+Spool de Impressão 
 
 Giovani Nícolas Bettoni
+
 giovanib@ufcspa.edu.br
 
 Esta é a segunda tarefa da disciplina Sistemas Operacionais, ofertada pelo professor Cristiano Bonato Both na Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), durante o primeiro semestre de 2017. Aparentemente, tudo foi testado e está funcionando. Vou subir um print de como funciona no meu computador.
