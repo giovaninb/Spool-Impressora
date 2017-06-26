@@ -1,16 +1,16 @@
-# comp310ast2
+Spool de Impressão 
 
 Giovani Nícolas Bettoni
 
 giovanib@ufcspa.edu.br
 
-260688650
+Esta é a segunda tarefa da disciplina Sistemas Operacionais, ofertada pelo professor Cristiano Bonato Both na Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), durante o primeiro semestre de 2017. Aparentemente, tudo foi testado e está funcionando. Vou subir um print de como funciona no meu computador.
 
-Everything is working fine and tested, a picture is joined to show an example on my computer.
-The two terminals on the left side are running `client` and are sending jobs to the queue. On the top one we can see a job waiting on the semaphore when the queue is full. The two terminals on the right side are running `print_server` and are taking jobs from the queue.
+Os dois terminais do lado esquerdo estão executando `client` e estão enviando tarefas para a fila. Na parte superior, podemos ver um trabalho esperando no semáforo quando a fila está cheia. Os dois terminais do lado direito estão executando `print_server` e estão levando tarefas da fila.
 
-`print_server` will prompt for the queue size then initialize the shared space and the semaphores and start taking print requests. For every jobs, it will print the information and then wait the corresponding time.
-Calling any subsequent `print_server` will skip the initialization and start accepting print request immediately.
+`print_server` solicitará o tamanho da fila, então inicializará o espaço compartilhado e os semáforos. Depois começará a receber solicitações de impressão. Para cada trabalho, ele imprimirá as informações e aguardará o tempo correspondente. Qualquer tentativa subsequente de chamada ao 'print_server' ignorará a inicialização e começará a aceitar a solicitação de impressão imediatamente.
 
-`client` will asks for a job name, a job duration (in seconds) and will log its PID with the job struct.
-As described in the header file common.h, the queue holds job structs.
+`client` pedirá um nome de trabalho, uma duração de trabalho (em segundos) e registrará seu PID com a estrutura do trabalho.
+Conforme descrito no arquivo de cabeçalho common.h, a fila mantém as estruturas de trabalho.
+
+A descrião do projeto (fornecida pelo professor Cristiano) está incluída no arquivo "segundo.pdf".
