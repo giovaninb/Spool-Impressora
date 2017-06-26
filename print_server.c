@@ -130,7 +130,7 @@ int main(int argc, char argv[]){
         printf("Pulando inicializacao uma vez que a memoria compartilhada ja fora criada\n");
     }
     int jobnum;
-    do{
+    while(1) {
         // espera para adquiri o mutex
         sem_wait(&shared_mem->underflow);
         sem_wait(&shared_mem->mutex);
@@ -150,7 +150,7 @@ int main(int argc, char argv[]){
         // TODO corrigir ProgressBar 
         // printProgress(currentjob.time/10);      //Show PB of the task
         // Executa o trabalho
-        sleep(currentjob.time);     
+        sleep(currentjob.time);         
         printf("Requisicao #%i concluida. \n---------------------\n\n", jobnum);
-    } while((jobnum+1) != shared_mem->queuesize);
+    } 
 }
